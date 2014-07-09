@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FRP test</title>
+    <script type="text/javascript" src="js/jquery.js"></script>
+    <script type="text/javascript" src="js/bacon.js"></script>
+    <script type="text/javascript">
+        $(function() {
+            function search(query) {
+                if (query.length < 3)
+                    return Bacon.once(['too short']);
+                return Bacon.fromPromise($.ajax('server.php', {
+                    dataType: 'json',
+                    data: {q: query}
+                }));
+            }
+
+            function showMovie(result) {
+                return result;
+            }
+
+            var text = $('#query')
+                .asEventStream('keyup')
+                .debounce(400)
+                .map(function(e) {
+            return e.target.value;
+                })
+                .skipDuplicates();
+
+            var suggestions = text.flatMapLatest(search);
+
+            text.awaiting(suggestions).onValue(function(x) {
+                if (x) $('#resultText').html('Searching...');
+            });
+
+            suggestions.onValue(function(results) {
+                $('#resultText').html($.map(results, showMovie));
+            });
+        })
+    </script>
+</head>
+<body>
+<h1>doing some tests here</h1>
+    <div id="search">
+        <label for="query">Search</label>
+        <input id="query" type="text">
+    </div>
+    <div id="result">
+        <label for="resultText">Results</label>
+        <span id="resultText"></span>
+    </div>
+</body>
+</html>

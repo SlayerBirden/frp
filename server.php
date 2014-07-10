@@ -21,4 +21,5 @@ class Server
 }
 $server = new Server();
 $query = $_GET['q'];
+sleep(1);
 echo $server->sendResponse($query);

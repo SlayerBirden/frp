@@ -19,21 +19,40 @@
                 return result;
             }
 
+            var on = $('#on').asEventStream('click').map(true);
+            var off =  $('#off').asEventStream('click').map(false);
+            var state = on.merge(off).toProperty(false);
+
+            state.onValue(function(y) {
+                if (y) {
+                    $('#current-state').html('State On');
+                } else {
+                    $('#current-state').html('State Off');
+                }
+            });
+
             var text = $('#query')
-                .asEventStream('keyup')
-                .debounce(400)
-                .map(function(e) {
-            return e.target.value;
-                })
-                .skipDuplicates();
+                    .asEventStream('keyup')
+                    .debounce(400)
+                    .map(function(e) {
+                        return e.target.value;
+                    })
+                    .skipDuplicates();
+            var passedText = text.filter(state);
+            var restrictedText = text.filter(state.not());
 
-            var suggestions = text.flatMapLatest(search);
+            var suggestions = passedText.flatMapLatest(search);
 
-            text.awaiting(suggestions).onValue(function(x) {
+            passedText.awaiting(suggestions).onValue(function(x) {
                 if (x) $('#resultText').html('Searching...');
             });
 
+            restrictedText.onValue(function() {
+                $('#resultText').html('Search is off');
+            });
+
             suggestions.onValue(function(results) {
+                console.log(results);
                 $('#resultText').html($.map(results, showMovie));
             });
         })
@@ -48,6 +67,12 @@
     <div id="result">
         <label for="resultText">Results</label>
         <span id="resultText"></span>
+    </div>
+    <div>
+        <h4>Switcher</h4>
+        <button id="on">On</button>
+        <button id="off">Off</button>
+        <span id="current-state"></span>
     </div>
 </body>
 </html>

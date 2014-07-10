@@ -39,14 +39,12 @@
                     })
                     .skipDuplicates();
             var mergedText = text.merge(state.changes().map(function(e) {
-                if (e) {
-                    return $('#query').val();
-                } else {
-                    return 'Search is off';
-                }
-            })).filter('.length');
-            var passedText = mergedText.filter(state);
-            var restrictedText = mergedText.filter(state.not());
+                return $('#query').val();
+            }));
+            var passedText = mergedText.filter('.length').filter(state);
+            var restrictedText = mergedText
+                    .filter('.length')
+                    .filter(state.not());
 
             var suggestions = passedText.flatMapLatest(search);
 

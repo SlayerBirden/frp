@@ -19,24 +19,59 @@
                 return result;
             }
 
+            var enable = $("#state-button-enable").asEventStream('click').map(true);
+            var disable = $("#state-button-disable").asEventStream('click').map(false);
+            var state = enable.merge(disable).toProperty(false);
+            state.onValue(function(state) {
+                if (state) {
+                    $("#state").html("Enabled");
+                } else {
+                    $("#state").html("Disabled");
+                }
+            });
+
             var text = $('#query')
                 .asEventStream('keyup')
-                .debounce(400)
+                .debounce(300)
                 .map(function(e) {
-            return e.target.value;
+                    return e.target.value;
                 })
                 .skipDuplicates();
 
-            var suggestions = text.flatMapLatest(search);
+
+
+            var suggestions = text.filter(state).flatMapLatest(search);
+            text.filter(state.not()).onValue(function() {
+                $('#resultText').html('Search disabled');
+            });
+//            suggestions.filter(state).onValue(function(results) {
+//                console.log(results);
+//                $('#resultText').html($.map(results, showMovie));
+//            });
+//            suggestions.filter(state.not()).onValue(function(results) {
+//                $('#resultText').html('Search disabled');
+//            });
+
+            suggestions.onValue(function(results) {
+                console.log(results);
+                $('#resultText').html($.map(results, showMovie));
+            });
+
+
+
 
             text.awaiting(suggestions).onValue(function(x) {
                 if (x) $('#resultText').html('Searching...');
             });
 
-            suggestions.onValue(function(results) {
-                $('#resultText').html($.map(results, showMovie));
-            });
-        })
+
+//            suggestions.onValue(function(results) {
+//                $('#resultText').html($.map(results, showMovie));
+//            });
+
+
+
+        });
     </script>
 </head>
 <body>
@@ -49,5 +84,9 @@
         <label for="resultText">Results</label>
         <span id="resultText"></span>
     </div>
+    <span>You need to enable in order to get response</span>
+    <button id="state-button-enable">Enable</button>
+    <button id="state-button-disable">Disable</button>
+    <span id="state"></span>
 </body>
 </html>

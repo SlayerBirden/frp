@@ -19,9 +19,9 @@
                 return result;
             }
 
-            var on = $('#on').asEventStream('click').map(true);
-            var off =  $('#off').asEventStream('click').map(false);
-            var state = on.merge(off).toProperty(false);
+            var on = $('#on').asEventStream('click');
+            var off =  $('#off').asEventStream('click');
+            var state = on.map(true).merge(off.map(false)).toProperty(false);
 
             state.onValue(function(y) {
                 if (y) {
@@ -38,8 +38,15 @@
                         return e.target.value;
                     })
                     .skipDuplicates();
-            var passedText = text.filter(state);
-            var restrictedText = text.filter(state.not());
+            var mergedText = text.merge(state.changes().map(function(e) {
+                if (e) {
+                    return $('#query').val();
+                } else {
+                    return 'Search is off';
+                }
+            })).filter('.length');
+            var passedText = mergedText.filter(state);
+            var restrictedText = mergedText.filter(state.not());
 
             var suggestions = passedText.flatMapLatest(search);
 

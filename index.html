@@ -19,59 +19,48 @@
                 return result;
             }
 
-            var enable = $("#state-button-enable").asEventStream('click').map(true);
-            var disable = $("#state-button-disable").asEventStream('click').map(false);
-            var state = enable.merge(disable).toProperty(false);
-            state.onValue(function(state) {
-                if (state) {
-                    $("#state").html("Enabled");
+            var on = $('#on').asEventStream('click');
+            var off =  $('#off').asEventStream('click');
+            var state = on.map(true).merge(off.map(false)).toProperty(false);
+
+            state.onValue(function(y) {
+                if (y) {
+                    $('#current-state').html('State On');
                 } else {
-                    $("#state").html("Disabled");
+                    $('#current-state').html('State Off');
                 }
             });
 
             var text = $('#query')
-                .asEventStream('keyup')
-                .debounce(300)
-                .map(function(e) {
-                    return e.target.value;
-                })
-                .skipDuplicates();
+                    .asEventStream('keyup')
+                    .debounce(400)
+                    .map(function(e) {
+                        return e.target.value;
+                    })
+                    .skipDuplicates();
+            var mergedText = text.merge(state.changes().map(function(e) {
+                return $('#query').val();
+            }));
+            var passedText = mergedText.filter('.length').filter(state);
+            var restrictedText = mergedText
+                    .filter('.length')
+                    .filter(state.not());
 
+            var suggestions = passedText.flatMapLatest(search);
 
-
-            var suggestions = text.filter(state).flatMapLatest(search);
-            text.filter(state.not()).onValue(function() {
-                $('#resultText').html('Search disabled');
+            passedText.awaiting(suggestions).onValue(function(x) {
+                if (x) $('#resultText').html('Searching...');
             });
-//            suggestions.filter(state).onValue(function(results) {
-//                console.log(results);
-//                $('#resultText').html($.map(results, showMovie));
-//            });
-//            suggestions.filter(state.not()).onValue(function(results) {
-//                $('#resultText').html('Search disabled');
-//            });
+
+            restrictedText.onValue(function() {
+                $('#resultText').html('Search is off');
+            });
 
             suggestions.onValue(function(results) {
                 console.log(results);
                 $('#resultText').html($.map(results, showMovie));
             });
-
-
-
-
-            text.awaiting(suggestions).onValue(function(x) {
-                if (x) $('#resultText').html('Searching...');
-            });
-
-
-//            suggestions.onValue(function(results) {
-//                $('#resultText').html($.map(results, showMovie));
-//            });
-
-
-
-        });
+        })
     </script>
 </head>
 <body>
@@ -84,9 +73,11 @@
         <label for="resultText">Results</label>
         <span id="resultText"></span>
     </div>
-    <span>You need to enable in order to get response</span>
-    <button id="state-button-enable">Enable</button>
-    <button id="state-button-disable">Disable</button>
-    <span id="state"></span>
+    <div>
+        <h4>Switcher</h4>
+        <button id="on">On</button>
+        <button id="off">Off</button>
+        <span id="current-state"></span>
+    </div>
 </body>
 </html>
